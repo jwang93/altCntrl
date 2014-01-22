@@ -82,6 +82,9 @@ public abstract class altCntrlActivity extends Activity implements
 	}
 
 	private void checkRotation(SensorEvent event) {
+		roll = event.values[0];
+		pitch = event.values[1];
+		
 		if (pitch > Constants.ROTATION_THRESHOLD[0]) {
 			event.values[1] = 0;
 			performAction(methods[0], objects[0]);
@@ -108,8 +111,6 @@ public abstract class altCntrlActivity extends Activity implements
 		float delta = mAccelCurrent - mAccelLast;
 		mAccel = mAccel * 0.9f + delta; // perform low-cut filter
 
-		roll = event.values[0];
-		pitch = event.values[1];
 		Log.i("Accel Value: ", ""+mAccel);
 		return (Math.abs(mAccel) > Constants.ACCELERATION_THRESHOLD && timeElapsed() > Constants.TIME_DELAY);
 	}
