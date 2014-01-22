@@ -15,8 +15,6 @@ import android.view.View;
 public abstract class altCntrlActivity extends Activity implements
 		SensorEventListener {
 
-	private double[] THRESHOLDS = { 30.0, -30.0 };
-	private double NOISE = 5.0;
 	public SensorManager sManager;
 	private boolean on = false;
 	private Method[] methods;
@@ -69,7 +67,39 @@ public abstract class altCntrlActivity extends Activity implements
 		if (event.accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) {
 			return;
 		}
+		
+		if (shakeDetected(event)) {
+			altCntrl = !altCntrl;
+			lastCheckedTime = System.currentTimeMillis();
+			StatusDialog dialog = altCntrl ? new StatusDialog(true) : new StatusDialog(false);
+			dialog.show(getFragmentManager(), "Status Dialog");
+		}
+		
+		if (!altCntrl) return;
+		recalibrate(event);
+		checkRotation(event);
 
+	}
+
+	private void checkRotation(SensorEvent event) {
+		if (pitch > Constants.ROTATION_THRESHOLD[0]) {
+			event.values[1] = 0;
+			performAction(methods[0], objects[0]);
+		} else if (pitch < Constants.ROTATION_THRESHOLD[1]) {
+			event.values[1] = 0;
+			performAction(methods[1], objects[1]);
+		}
+	}
+	
+	
+	private void recalibrate(SensorEvent event) {
+		if (Math.abs(event.values[1]) < Constants.NOISE) {
+			on = true;
+		}
+	}
+	
+	
+	private boolean shakeDetected(SensorEvent event) {
 		float x = event.values[0];
 		float y = event.values[1];
 		float z = event.values[2];
@@ -80,32 +110,10 @@ public abstract class altCntrlActivity extends Activity implements
 
 		roll = event.values[0];
 		pitch = event.values[1];
-
-		Log.i("mAccel: ", ""+mAccel);
-		if (Math.abs(mAccel) > 200.0 && timeElapsed() > 2) {
-			altCntrl = !altCntrl;
-			lastCheckedTime = System.currentTimeMillis();
-			StatusDialog dialog = altCntrl ? new StatusDialog(true) : new StatusDialog(false);
-			dialog.show(getFragmentManager(), "Status Dialog");
-		}
-
-		if (!altCntrl)
-			return;
-
-		if (Math.abs(event.values[1]) < NOISE) {
-			on = true;
-		}
-
-		if (pitch > THRESHOLDS[0]) {
-			event.values[1] = 0;
-			performAction(methods[0], objects[0]);
-		} else if (pitch < THRESHOLDS[1]) {
-			event.values[1] = 0;
-			performAction(methods[1], objects[1]);
-		}
-
+		Log.i("Accel Value: ", ""+mAccel);
+		return (Math.abs(mAccel) > Constants.ACCELERATION_THRESHOLD && timeElapsed() > Constants.TIME_DELAY);
 	}
-
+	
 	// return the timeElapsed in seconds from current time to last checked time
 	private int timeElapsed() {
 		return (int) (long) (System.currentTimeMillis() - lastCheckedTime) / (1000);
